@@ -18,7 +18,6 @@ void GrabarByteMaps(EXT_BYTE_MAPS *ext_bytemaps, FILE *fich);
 void GrabarSuperBloque(EXT_SIMPLE_SUPERBLOCK *ext_superblock, FILE *fich);
 void GrabarDatos(EXT_DATOS *memdatos, FILE *fich); //FDSFAHSBFGSAHFDA
 
-
 int main(){
 
 	 char *comando[LONGITUD_COMANDO];
