@@ -35,7 +35,7 @@ int main(){
      EXT_DATOS memdatos[MAX_BLOQUES_DATOS];
      EXT_DATOS datosfich[MAX_BLOQUES_PARTICION];
      int entradadir;
-     int grabardatos;
+     int grabardatos = 0;
      FILE *fent;
      
      // Lectura del fichero completo de una sola vez
@@ -53,32 +53,60 @@ int main(){
      memcpy(&memdatos,(EXT_DATOS *)&datosfich[4],MAX_BLOQUES_DATOS*SIZE_BLOQUE);
      
      // Buce de tratamiento de comandos
-     for (;;){
-		 do {
-		 printf (">> ");
-		 fflush(stdin);
-		 fgets(comando, LONGITUD_COMANDO, stdin);
-		 } while (ComprobarComando(comando,orden,argumento1,argumento2) !=0);
-	     if (strcmp(orden,"dir")==0) {
-            Directorio(&directorio,&ext_blq_inodos);
+ for (;;) {
+        do {
+            printf(">> ");
+            fflush(stdin);
+            fgets(comando, LONGITUD_COMANDO, stdin);
+        } while (ComprobarComando(comando, orden, argumento1, argumento2) != 0);
+
+        // ---INFO---
+        if (strcmp(orden, "info") == 0) {
+            LeeSuperBloque(&ext_superblock);
             continue;
-            }
+        }
 
-        // COMANDOS.
+        //---BYTEMAPS---
+        if (strcmp(orden, "bytemaps") == 0) {
+            Printbytemaps(&ext_bytemaps);
+            continue;
+        }
 
+        // ---DIR---
+        if (strcmp(orden, "dir") == 0) {
+            Directorio(&directorio, &ext_blq_inodos);
+            continue;
+        }
+
+        // ---RENAME---
         if (strcmp(orden, "rename") == 0) {
             Renombrar(&directorio, &ext_blq_inodos, argumento1, argumento2);
-        } else if (strcmp(orden, "remove") == 0) {
+        } 
+
+        // ---REMOVE---
+        else if (strcmp(orden, "remove") == 0) {
             Borrar(&directorio, &ext_blq_inodos, &ext_bytemaps, &ext_superblock, argumento1, fent);
-        } else if (strcmp(orden, "copy") == 0) {
+        } 
+
+        // ---COPY---
+        else if (strcmp(orden, "copy") == 0) {
             Copiar(&directorio, &ext_blq_inodos, &ext_bytemaps, &ext_superblock, &memdatos, argumento1, argumento2, fent);
-        } else if (strcmp(orden, "imprimir") == 0) {
+        } 
+
+        // ---IMPRIMIR---
+        else if (strcmp(orden, "imprimir") == 0) {
             Imprimir(&directorio, &ext_blq_inodos, &memdatos, argumento1);
-        } else if (strcmp(orden, "salir") == 0) {
+        } 
+
+        // ---SALIR---
+        else if (strcmp(orden, "salir") == 0) {
             GrabarDatos(&memdatos, fent);
             fclose(fent);
             return 0;
-        } else {
+        } 
+
+        // En el caso de que el usuario introduzca un comando que no exista o se equivoque, saltará un mensaje.
+        else {
             printf("COMANDO NO ENCONTRADO: %s\n", orden);
         }
 
@@ -122,13 +150,13 @@ int main(){
          printf("Bloques [0-25] :");
          
          // Hacemos un for para imprimir el estado o bytemap de los primeros 25 bloques.
-         for (int j = 0; j<25; j++) {
+         for (int j = 0; j < 25; j++) {
             printf("%d ", ext_bytemaps->bmap_bloques[j]);
             }
             
             printf("\n"); //Saltamos de linea.
    }
-/*   
+
    //----DIR----
 
    //Método que mostrará los ficheros, tanto su nombre, tamaño y bloques.
@@ -160,8 +188,8 @@ int main(){
             printf("\n");  //Saltamos de linea.
         }
     }
-
 }
+/*
    //----RENAME----
 
    //Método utilizado para renombrar 
