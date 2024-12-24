@@ -4,6 +4,7 @@
 #include "cabeceras.h"
 #define LONGITUD_COMANDO 100
 
+// Declaración de las funciones utilizadas en el programa
 void Printbytemaps(EXT_BYTE_MAPS *ext_bytemaps);
 int ComprobarComando(char *strcomando, char *orden, char *argumento1, char *argumento2);
 void LeeSuperBloque(EXT_SIMPLE_SUPERBLOCK *psup);
@@ -21,101 +22,98 @@ void GrabarDatos(EXT_DATOS *memdatos, FILE *fich);
 // Main del programa.
 int main(){
 
-	 char comando[LONGITUD_COMANDO];
-	 char orden[LONGITUD_COMANDO];
-	 char argumento1[LONGITUD_COMANDO];
-	 char argumento2[LONGITUD_COMANDO];
-	 
-	 int i,j;
-	 unsigned long int m;
-     EXT_SIMPLE_SUPERBLOCK ext_superblock;
-     EXT_BYTE_MAPS ext_bytemaps;
-     EXT_BLQ_INODOS ext_blq_inodos;
-     EXT_ENTRADA_DIR directorio[MAX_FICHEROS];
-     EXT_DATOS memdatos[MAX_BLOQUES_DATOS];
-     EXT_DATOS datosfich[MAX_BLOQUES_PARTICION];
-     int entradadir;
-     int grabardatos = 0;
-     FILE *fent;
-     
+    char comando[LONGITUD_COMANDO];
+    char orden[LONGITUD_COMANDO];
+    char argumento1[LONGITUD_COMANDO];
+    char argumento2[LONGITUD_COMANDO];
+
+    int i,j;
+    unsigned long int m;
+    EXT_SIMPLE_SUPERBLOCK ext_superblock;
+    EXT_BYTE_MAPS ext_bytemaps;
+    EXT_BLQ_INODOS ext_blq_inodos;
+    EXT_ENTRADA_DIR directorio[MAX_FICHEROS];  // No cambies esta declaración
+    EXT_DATOS memdatos[MAX_BLOQUES_DATOS];
+    EXT_DATOS datosfich[MAX_BLOQUES_PARTICION];
+    int entradadir;
+    int grabardatos = 0;
+    FILE *fent;
+    
      // Lectura del fichero completo de una sola vez
      fent = fopen("particion.bin", "r+b");
-     if (fent == NULL) {
+     if (!fent) {
         printf("ERROR\n");
         return -1;
         }
 
-     fread(&datosfich, SIZE_BLOQUE, MAX_BLOQUES_PARTICION, fent);
-     memcpy(&ext_superblock,(EXT_SIMPLE_SUPERBLOCK *)&datosfich[0], SIZE_BLOQUE);
-     memcpy(&directorio,(EXT_ENTRADA_DIR *)&datosfich[3], SIZE_BLOQUE);
-     memcpy(&ext_bytemaps,(EXT_BLQ_INODOS *)&datosfich[1], SIZE_BLOQUE);
-     memcpy(&ext_blq_inodos,(EXT_BLQ_INODOS *)&datosfich[2], SIZE_BLOQUE);
-     memcpy(&memdatos,(EXT_DATOS *)&datosfich[4],MAX_BLOQUES_DATOS*SIZE_BLOQUE);
-     
-     // Buce de tratamiento de comandos
- for (;;) {
-        do {
-            printf(">> ");
-            fflush(stdin);
-            fgets(comando, LONGITUD_COMANDO, stdin);
-        } while (ComprobarComando(comando, orden, argumento1, argumento2) != 0);
+    fread(&datosfich, SIZE_BLOQUE, MAX_BLOQUES_PARTICION, fent);
+    memcpy(&ext_superblock, (EXT_SIMPLE_SUPERBLOCK *)&datosfich[0], SIZE_BLOQUE);
+    memcpy(&ext_bytemaps, (EXT_BYTE_MAPS *)&datosfich[1], SIZE_BLOQUE);
+    memcpy(&ext_blq_inodos, (EXT_BLQ_INODOS *)&datosfich[2], SIZE_BLOQUE);
+    memcpy(&directorio, (EXT_ENTRADA_DIR *)&datosfich[3], SIZE_BLOQUE);
+    memcpy(&memdatos, (EXT_DATOS *)&datosfich[4], MAX_BLOQUES_DATOS * SIZE_BLOQUE);
+
+    // BUCLE PARA LOS COMANDOS.
+    for (;;) {
+        printf(">> ");
+        fgets(comando, LONGITUD_COMANDO, stdin); // Leemos el comando introducido por el usuario.
+        comando[strcspn(comando, "\n")] = 0; // Eliminamos el salto de linea.
+
+        // Validar y dividir el comando en orden y argumentos.
+        if (ComprobarComando(comando, orden, argumento1, argumento2) != 0) {
+            printf("Error en el comando. Inténtalo de nuevo.\n");
+            continue;
+        }
 
         // ---INFO---
         if (strcmp(orden, "info") == 0) {
             LeeSuperBloque(&ext_superblock);
-            continue;
         }
 
         //---BYTEMAPS---
-        if (strcmp(orden, "bytemaps") == 0) {
+        else if (strcmp(orden, "bytemaps") == 0) {
             Printbytemaps(&ext_bytemaps);
-            continue;
         }
 
         // ---DIR---
-        if (strcmp(orden, "dir") == 0) {
-            Directorio(&directorio, &ext_blq_inodos);
-            continue;
+        else if (strcmp(orden, "dir") == 0) {
+            Directorio(directorio, &ext_blq_inodos);  // Pasamos directorio directamente
         }
 
         // ---RENAME---
-        if (strcmp(orden, "rename") == 0) {
-            Renombrar(&directorio, &ext_blq_inodos, argumento1, argumento2);
+        else if (strcmp(orden, "rename") == 0) {
+            Renombrar(directorio, &ext_blq_inodos, argumento1, argumento2);  // Pasamos directorio directamente
         } 
 
         // ---REMOVE---
         else if (strcmp(orden, "remove") == 0) {
-            Borrar(&directorio, &ext_blq_inodos, &ext_bytemaps, &ext_superblock, argumento1, fent);
+            Borrar(directorio, &ext_blq_inodos, &ext_bytemaps, &ext_superblock, argumento1, fent);  // Pasamos directorio directamente
         } 
 
         // ---COPY---
         else if (strcmp(orden, "copy") == 0) {
-            Copiar(&directorio, &ext_blq_inodos, &ext_bytemaps, &ext_superblock, &memdatos, argumento1, argumento2, fent);
+            Copiar(directorio, &ext_blq_inodos, &ext_bytemaps, &ext_superblock, memdatos, argumento1, argumento2, fent);  // Pasamos directorio directamente
         } 
 
         // ---IMPRIMIR---
         else if (strcmp(orden, "imprimir") == 0) {
-            Imprimir(&directorio, &ext_blq_inodos, &memdatos, argumento1);
+            Imprimir(directorio, &ext_blq_inodos, memdatos, argumento1);  // Pasamos directorio directamente
         } 
 
         // ---SALIR---
         else if (strcmp(orden, "salir") == 0) {
-            GrabarDatos(&memdatos, fent);
+            GrabarDatos(memdatos, fent);
             fclose(fent);
             return 0;
-        } 
-
-        // En el caso de que el usuario introduzca un comando que no exista o se equivoque, saltará un mensaje.
-        else {
-            printf("COMANDO NO ENCONTRADO: %s\n", orden);
         }
 
          // Escritura de metadatos en comandos rename, remove, copy     
-         Grabarinodosydirectorio(&directorio,&ext_blq_inodos,fent);
+         Grabarinodosydirectorio(directorio,&ext_blq_inodos,fent);
          GrabarByteMaps(&ext_bytemaps,fent);
          GrabarSuperBloque(&ext_superblock,fent);
-         if (grabardatos)
-           GrabarDatos(&memdatos,fent);
+         if (grabardatos){
+           GrabarDatos(memdatos,fent);
+         }
          grabardatos = 0;
      }
 }
@@ -131,7 +129,7 @@ int main(){
       printf("Bloques libres = %d\n" , psup->s_free_blocks_count);
       printf("Primer bloque de datos = %d\n" , psup->s_first_data_block);
    }
- 
+
    //----BYTEMAPS----
 
    //Método que mostrará el contenido del bytemap de inodos y los 25 primeros elementos del bytemap de bloques.
@@ -153,9 +151,8 @@ int main(){
          for (int j = 0; j < 25; j++) {
             printf("%d ", ext_bytemaps->bmap_bloques[j]);
             }
-            
             printf("\n"); //Saltamos de linea.
-   }
+            }
 
    //----DIR----
 
@@ -189,7 +186,6 @@ int main(){
         }
     }
 }
-/*
    //----RENAME----
 
    //Método utilizado para renombrar 
@@ -242,7 +238,8 @@ int main(){
     EXT_SIMPLE_INODE *inodo = &inodos->blq_inodos[inodoInx];
     for (int i = 0; i < MAX_NUMS_BLOQUE_INODO; i++) {
         if (inodo->i_nbloque[i] != 0xFFFF) {
-            printf("%s", (char *)memdatos[inodo->i_nbloque[i]]);
+            char *bloque_dato = (char *)memdatos[inodo->i_nbloque[i]].bloques; // Cambia 'bloques' por el nombre correcto
+            printf("%s", bloque_dato);
         }
     }
     printf("\n"); // Salto de linea.
@@ -275,59 +272,23 @@ int main(){
     // Marcamos el inodo como libre "0".
     ext_bytemaps->bmap_inodos[i_index] = 0;
 
-    // Reiniciamos el tamaño de archivo
-    inodos->blq_inodos[i_index].size_fichero = 0;
+    directorio[i_index].dir_inodo = 0xFFFF;
 
-    // Eliminamos la posibilidad de entrada del archivo al directorio.
-    for (int i = 0; i < MAX_FICHEROS; i++) {
-        if (directorio[i].dir_inodo == i_index) {
-            strcpy(directorio[i].dir_nfich, "");
-            directorio[i].dir_inodo = 0xFFFF;
-            break;
-        }
-    }
-    
-    // Incrementamos el contador de inodos libres en el super-bloque.
-    ext_superblock->s_inodos_libres++;
+    ext_superblock->s_free_inodes_count++;
+
+    ext_superblock->s_free_blocks_count++;
     return 0;
    }
-
-   //----SALIR----
-
-   // Método para salir.
-   if (strcmp(orden, "salir") == 0) {
-
-    // 1. Guardamos la estructura del directorio y la lista de los inodos en el archivo "FENT".
-    Grabarinodosydirectorio(&directorio, &ext_blq_inodos, fent); // Así nos aseguramos que ningun archivo o tamaño se pierda.
-
-    // 2. Guardamos los mapas de bits de bloques e inodos.
-    GrabarByteMaps(&ext_bytemaps, fent);
-
-    // 3. Guardamos el superbloque que contiene información global sobre el sistema de archivos.
-    GrabarSuperBloque(&ext_superblock, fent);
-
-    // 4. Guarmos el contenido de los bloques de datos en el archivo del sistema.
-    GrabarDatos(&memdatos, fent);
-
-    // 5. Por último cerramos el archivo.
-    fclose(fent);
-
-    // Imprimimos el mensaje para informar al usuario de que ha salido.
-    printf("CERRADO DE ARCHIVOS COMPLETADO CON EXITO\n");
-    return 0;
-   }
-   
-
    //----COPIAR----
 
-   //Método para copiar un archivo dentro del sistema de archivos simulado.
-   int Copiar(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, EXT_BYTE_MAPS *ext_bytemaps, EXT_SIMPLE_SUPERBLOCK *ext_superblock, EXT_DATOS *memdatos, char *nombreorigen, char *nombredestino, FILE *fich) {
-
+//Método para copiar un archivo dentro del sistema de archivos simulado.
+int Copiar(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, EXT_BYTE_MAPS *ext_bytemaps, EXT_SIMPLE_SUPERBLOCK *ext_superblock, EXT_DATOS *memdatos, char *nombreorigen, char *nombredestino, FILE *fich) {
+ 
   // Buscamos el archivo de origen "nombreOrigen" en el directorio.
-    int i_origen = BuscaFich(directorio, inodos, nombreorigen);
+  int i_origen = BuscaFich(directorio, inodos, nombreorigen);
 
-   // Buscar un inodo libre.
-   int i_libre = -1;
+  // Buscar un inodo libre.
+  int i_libre = -1;
 
    // Recorremos el "mapa" de bits de inodos para encontrar un inodo que esté disponible.
    for (int i = 0; i < MAX_INODOS; i++) {
@@ -382,19 +343,46 @@ int main(){
 
     return 0; // Vuelve.
 }
+ 
+   //----SALIR----
+
+   // Método para salir.
+   if (strcmp(orden, "salir") == 0) {
+
+    // 1. Guardamos la estructura del directorio y la lista de los inodos en el archivo "FENT".
+    Grabarinodosydirectorio(&directorio, &ext_blq_inodos, fent); // Así nos aseguramos que ningun archivo o tamaño se pierda.
+
+    // 2. Guardamos los mapas de bits de bloques e inodos.
+    GrabarByteMaps(&ext_bytemaps, fent);
+
+    // 3. Guardamos el superbloque que contiene información global sobre el sistema de archivos.
+    GrabarSuperBloque(&ext_superblock, fent);
+
+    // 4. Guarmos el contenido de los bloques de datos en el archivo del sistema.
+    GrabarDatos(&memdatos, fent);
+
+    // 5. Por último cerramos el archivo.
+    fclose(fent);
+
+    // Imprimimos el mensaje para informar al usuario de que ha salido.
+    printf("CERRADO DE ARCHIVOS COMPLETADO CON EXITO\n");
+    return 0;
+   }
 
 
-   //----COMANDO DESCONOCIDO----
+//----COMANDO DESCONOCIDO----
 
 // Método que lanzará un error si el usuario pide un comando
 if (strcmp(orden, "listar") == 0) {
-    ListarArchivos(&directorio, &ext_blq_inodos);
+    ListarArchivos(directorio, &ext_blq_inodos);
 } else if (strcmp(orden, "borrar") == 0) {
-    Borrar(&directorio, &ext_blq_inodos, &ext_bytemaps, &ext_superblock, &memdatos, nombreorigen, nombredestino, fent);
-} else if (strcmp(orden, "listar") == 0) {
-    Listar(&directorio, &ext_blq_inodos, &ext_bytemaps, &ext_superblock, nombre, fent);
+    Borrar(directorio, &ext_blq_inodos, &ext_bytemaps, &ext_superblock, nombreorigen, nombredestino, fent);
 } else if (strcmp(orden, "copiar") == 0) {
-    Copiar(&directorio, &ext_blq_inodos, &ext_bytemaps, &ext_superblock, &memdatos, fent);
+    if (ComprobarComando(comando, orden, argumento1, argumento2) != 0) {
+        printf("Error en el comando copiar.\n");
+        continue;
+    }
+    Copiar(directorio, &ext_blq_inodos, &ext_bytemaps, &ext_superblock, &memdatos, argumento1, argumento2, fent);
 } else {
-    printf("ERROR: Comando ilegal [%s]", orden);
-}*/
+    printf("ERROR: Comando ilegal [%s].\n", orden);
+}
