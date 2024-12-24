@@ -10,7 +10,6 @@
 #define NULL_INODO 0xFFFF
 #define NULL_BLOQUE 0xFFFF
 
-
 /* Estructura del superbloque */
 typedef struct {
   unsigned int s_inodes_count;          /* inodos de la partición */
