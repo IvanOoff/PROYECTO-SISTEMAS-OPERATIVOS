@@ -57,7 +57,7 @@ int main() {
         comando[strcspn(comando, "\n")] = 0;
         //verifica el comando
         if (ComprobarComando(comando, orden, argumento1, argumento2) != 0) {
-            printf("ERROR: Comando inválido. Intente nuevamente.\n");
+            printf("ERROR: Comando invalido. Intente nuevamente.\n");
             continue;
         }
         //INFO
@@ -75,25 +75,25 @@ int main() {
         //RENAME
         else if (strcmp(orden, "rename") == 0) {
             if (Renombrar(directorio, &ext_blq_inodos, argumento1, argumento2) == 0) {
-                printf("Fichero renombrado con éxito.\n");
+                printf("Fichero renombrado con exito.\n");
             }
         } 
         //REMOVE
         else if (strcmp(orden, "remove") == 0) {
             if (Borrar(directorio, &ext_blq_inodos, &ext_bytemaps, &ext_superblock, argumento1, fent) == 0) {
-                printf("Fichero eliminado con éxito.\n");
+                printf("Fichero eliminado con exito.\n");
             }
         } 
         //COPY
         else if (strcmp(orden, "copy") == 0) {
             if (Copiar(directorio, &ext_blq_inodos, &ext_bytemaps, &ext_superblock, memdatos, argumento1, argumento2, fent) == 0) {
-                printf("Fichero copiado con éxito.\n");
+                printf("Fichero copiado con exito.\n");
             }
         } 
         //IMPRIMIR
         else if (strcmp(orden, "imprimir") == 0) {
             if (Imprimir(directorio, &ext_blq_inodos, memdatos, argumento1) == 0) {
-                printf("Contenido impreso con éxito.\n");
+                printf("Contenido impreso con exito.\n");
             }
         } 
         //SALIR
@@ -134,7 +134,12 @@ void Printbytemaps(EXT_BYTE_MAPS *ext_bytemaps) {
 }
 //verifica el comando
 int ComprobarComando(char *strcomando, char *orden, char *argumento1, char *argumento2) {
-    return sscanf(strcomando, "%s %s %s", orden, argumento1, argumento2) >= 1 ? 0 : -1;
+    if (sscanf(strcomando, "%s %s %s", orden, argumento1, argumento2) >= 1) {
+    return 0;
+    }else{ 
+    return -1;
+    }
+
 }
 //printea el superbloque
 void LeeSuperBloque(EXT_SIMPLE_SUPERBLOCK *psup) {
@@ -145,6 +150,7 @@ void LeeSuperBloque(EXT_SIMPLE_SUPERBLOCK *psup) {
     printf("Bloques libres: %d\n", psup->s_free_blocks_count);
     printf("Primer bloque de datos: %d\n", psup->s_first_data_block);
 }
+
 //busca el fichero que se pregunta
 int BuscaFich(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, char *nombre) {
     for (int i = 0; i < MAX_FICHEROS; i++) {
@@ -154,6 +160,7 @@ int BuscaFich(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, char *nombre)
     }
     return -1;
 }
+
 //imprime el contenido del directorio
 void Directorio(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos) {
     for (int i = 0; i < MAX_FICHEROS; i++) {
@@ -169,6 +176,7 @@ void Directorio(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos) {
         }
     }
 }
+
 //cambia el nombre del fichero
 int Renombrar(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, char *nombreantiguo, char *nombredestino) {
     int indice_antiguo = BuscaFich(directorio, inodos, nombreantiguo);
@@ -186,6 +194,7 @@ int Renombrar(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, char *nombrea
     strcpy(directorio[indice_antiguo].dir_nfich, nombredestino);
     return 0;
 }
+
 //muestra el contenido del fichero
 int Imprimir(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, EXT_DATOS *memdatos, char *nombre) {
     int indice = BuscaFich(directorio, inodos, nombre);
@@ -203,6 +212,7 @@ int Imprimir(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, EXT_DATOS *mem
     printf("\n");
     return 0;
 }
+
 //borra el fichero
 int Borrar(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, EXT_BYTE_MAPS *ext_bytemaps, EXT_SIMPLE_SUPERBLOCK *ext_superblock, char *nombre, FILE *fich) {
     int indice = BuscaFich(directorio, inodos, nombre);
@@ -228,6 +238,7 @@ int Borrar(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, EXT_BYTE_MAPS *e
     ext_superblock->s_free_blocks_count++;
     return 0;
 }
+
 //copia el fichero en uno nuevo
 int Copiar(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, EXT_BYTE_MAPS *ext_bytemaps, EXT_SIMPLE_SUPERBLOCK *ext_superblock, EXT_DATOS *memdatos, char *nombreorigen, char *nombredestino, FILE *fich) {
     int indice_origen = BuscaFich(directorio, inodos, nombreorigen);
