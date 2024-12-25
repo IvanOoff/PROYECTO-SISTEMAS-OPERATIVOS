@@ -34,7 +34,7 @@ int main() {
     EXT_DATOS datosfich[MAX_BLOQUES_PARTICION];
 
     // Abrimos el archivo con un "fopen".
-    FILE *fent = fopen("particion.bin", "r+b");
+    FILE *fent = fopen("particion.bin", "r+");
     if (!fent) {
         printf("ERROR: No se pudo abrir el archivo particion.bin\n");
         return -1;
@@ -180,7 +180,7 @@ int BuscaFich(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, char *nombre)
     return -1; // Si no encuentra el directorio, o el nombre no coincide, el archivo no ha sido encontrado.
 }
 
-// ---DIR / Método que imprime el contenido del directorio, el tamaño, inodo, nombre y bloques que ocupa.
+// ---DIR--- / Método que imprime el contenido del directorio, el tamaño, inodo, nombre y bloques que ocupa.
 void Directorio(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos) {
     
     // Recorremos todas las entradas del directorio.
