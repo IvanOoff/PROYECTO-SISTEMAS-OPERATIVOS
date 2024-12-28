@@ -9,6 +9,7 @@ void Printbytemaps(EXT_BYTE_MAPS *ext_bytemaps);
 int ComprobarComando(char *strcomando, char *orden, char *argumento1, char *argumento2);
 void LeeSuperBloque(EXT_SIMPLE_SUPERBLOCK *psup);
 int BuscaFich(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, char *nombre);
+int BuscaFich2(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, char *nombre);
 void Directorio(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos);
 int Renombrar(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, char *nombreantiguo, char *nombredestino);
 int Imprimir(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, EXT_DATOS *memdatos, char *nombre);
@@ -35,7 +36,7 @@ int main() {
     EXT_DATOS datosfich[MAX_BLOQUES_PARTICION];
 
     // Abrimos el archivo con un "fopen".
-    FILE *fent = fopen("particion.bin", "r+b");
+    FILE *fent = fopen("particion.bin", "rb");
     if (!fent) {
         printf("ERROR: No se pudo abrir el archivo particion.bin\n");
         return -1;
@@ -43,11 +44,11 @@ int main() {
 
     // Leemos el contenido del archivo particion.bin, para después ir sacando la información de este mismo.
     fread(&datosfich, SIZE_BLOQUE, MAX_BLOQUES_PARTICION, fent);
-    memcpy(&ext_superblock, &datosfich[0], SIZE_BLOQUE);
-    memcpy(&ext_bytemaps, &datosfich[1], SIZE_BLOQUE);
-    memcpy(&ext_blq_inodos, &datosfich[2], SIZE_BLOQUE);
-    memcpy(&directorio, &datosfich[3], SIZE_BLOQUE);
-    memcpy(&memdatos, &datosfich[4], MAX_BLOQUES_DATOS * SIZE_BLOQUE);
+    memcpy(&ext_superblock, (EXT_SIMPLE_SUPERBLOCK *)&datosfich[0], SIZE_BLOQUE);
+    memcpy(&directorio, (EXT_ENTRADA_DIR *)&datosfich[3], SIZE_BLOQUE);
+    memcpy(&ext_bytemaps, (EXT_BYTE_MAPS *)&datosfich[1], SIZE_BLOQUE);
+    memcpy(&ext_blq_inodos, (EXT_BLQ_INODOS *)&datosfich[2], SIZE_BLOQUE);
+    memcpy(&memdatos, (EXT_DATOS *)&datosfich[4], MAX_BLOQUES_DATOS * SIZE_BLOQUE);
 
     // Utilizamos un buble for que actuará como si se tratase de un "while(1)", donde se llamará a los comando.
     for(;;){
@@ -57,7 +58,7 @@ int main() {
 
         // Verificamos que el usaurio haya introducido bien el comando.
         if (ComprobarComando(comando, orden, argumento1, argumento2) != 0) {
-            printf("ERROR: Comando invalido. Intente nuevamente.\n"); // Salta´ra un error en caso de que el usuario introduzca un comando erroneo.
+            printf("ERROR: Comando invalido. Intente nuevamente.\n"); // Saltara un error en caso de que el usuario introduzca un comando erroneo.
             continue;
         }
 
@@ -80,6 +81,11 @@ int main() {
         else if (strcmp(orden, "rename") == 0) {
             if (Renombrar(directorio, &ext_blq_inodos, argumento1, argumento2) == 0) {
                 printf("Fichero renombrado con exito.\n");
+                
+                // Aseguramos que se guardan los cambios en memoria.
+                Grabarinodosydirectorio(directorio, &ext_blq_inodos, fent);
+                GrabarByteMaps(&ext_bytemaps, fent);
+                GrabarSuperBloque(&ext_superblock, fent);
             }
         } 
         
@@ -87,6 +93,9 @@ int main() {
         else if (strcmp(orden, "remove") == 0) {
             if (Borrar(directorio, &ext_blq_inodos, &ext_bytemaps, &ext_superblock, argumento1, fent) == 0) {
                 printf("Fichero eliminado con exito.\n");
+                Grabarinodosydirectorio(directorio, &ext_blq_inodos, fent);
+                GrabarByteMaps(&ext_bytemaps, fent);
+                GrabarSuperBloque(&ext_superblock, fent);
             }
         } 
 
@@ -94,6 +103,9 @@ int main() {
         else if (strcmp(orden, "copy") == 0) {
             if (Copiar(directorio, &ext_blq_inodos, &ext_bytemaps, &ext_superblock, memdatos, argumento1, argumento2, fent) == 0) {
                 printf("Fichero copiado con exito.\n");
+                Grabarinodosydirectorio(directorio, &ext_blq_inodos, fent);
+                GrabarByteMaps(&ext_bytemaps, fent);
+                GrabarSuperBloque(&ext_superblock, fent);
             }
         }
         // ---IMPRIMIR---
@@ -116,7 +128,7 @@ int main() {
 
         // ---COMANDO DESCONOCIDO---
         else {
-            printf("ERROR: Comando ilegal [%s].\n", orden);
+            printf("ERROR: Comando ilegal [bytemaps,copy,dir,info,imprimir,rename,remove,salir]\n");
         }
     }
     return 0;
@@ -130,11 +142,11 @@ void LeeSuperBloque(EXT_SIMPLE_SUPERBLOCK *psup) {
 
     // Imprimimos la información del superbloque.
     printf("Bloques %d bytes\n", psup->s_block_size);
-    printf("Inodos particion: %d\n", psup->s_inodes_count);
-    printf("Inodos libres: %d\n", psup->s_free_inodes_count);
-    printf("Bloques particion: %d\n", psup->s_blocks_count);
-    printf("Bloques libres: %d\n", psup->s_free_blocks_count);
-    printf("Primer bloque de datos: %d\n", psup->s_first_data_block);
+    printf("Inodos particion = %d\n", psup->s_inodes_count);
+    printf("Inodos libres = %d\n", psup->s_free_inodes_count);
+    printf("Bloques particion = %d\n", psup->s_blocks_count);
+    printf("Bloques libres = %d\n", psup->s_free_blocks_count);
+    printf("Primer bloque de datos = %d\n", psup->s_first_data_block);
 }
 
 // ---BYTEMAPS--- / Método que mostrará el contenido del "bytemaps" de inodos y los 25 primeros elementos del bytemap de bloques.
@@ -164,14 +176,10 @@ int ComprobarComando(char *strcomando, char *orden, char *argumento1, char *argu
         }
         else{
             return -1;
-            }
-
-            /*    int n = sscanf(strcomando, "%s %s %s", orden, argumento1, argumento2);
-    if (n < 1) return 1;
-    return 0; */
+        }
 }
 
-// ---BUSCARFICH--- / Método que se encargará de buscar el fichero.
+// ---BUSCARFICH--- / Método que se encargará de buscar el fichero
 int BuscaFich(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, char *nombre) {
     
     // Bucle for para recorrer todas las entradas del directorio.
@@ -185,6 +193,21 @@ int BuscaFich(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, char *nombre)
     return -1; // Si no encuentra el directorio, o el nombre no coincide, el archivo no ha sido encontrado.
 }
 
+// ---BUSCARFICH--- / Método que se encargará de buscar el fichero / Para gestionar el método de rename y remove.
+int BuscaFich2(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, char *nombre){
+        
+    // Bucle for para recorrer todas las entradas del directorio.
+    for (int i = 0; i < MAX_FICHEROS; i++) {
+
+        // Comprobamos si la entrada del directorio es válida y comparamos el nombre del archivo que se está buscando con el nombre guardado en el directorio actual.
+        if (strcmp(directorio[i].dir_nfich, nombre) == 0) {
+            return i; // Si la entrada es válida y el nombre coincide, devolvemos el valor.; // Si la entrada es válida y el nombre coincide, devolvemos el valor.
+        }
+    }
+    return -1; // Si no encuentra el directorio, o el nombre no coincide, el archivo no ha sido encontrado.
+}
+
+
 // ---DIR--- / Método que imprime el contenido del directorio, el tamaño, inodo, nombre y bloques que ocupa.
 void Directorio(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos) {
 
@@ -195,7 +218,7 @@ void Directorio(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos) {
         if (directorio[i].dir_inodo != NULL_INODO) {
 
             // Imprimimos el tamaño, inodo y bloques de todos los archivos del directorio.
-            printf("%s tamanio:%d inodo:%d bloques:", directorio[i].dir_nfich, directorio[i].dir_inodo, inodos->blq_inodos[directorio[i].dir_inodo].size_fichero);
+            printf("%s tamanio:%d inodo:%d bloques:", directorio[i].dir_nfich, inodos->blq_inodos[directorio[i].dir_inodo].size_fichero, directorio[i].dir_inodo );
             
             // Bucle para recorrer los bloques asignados al archivo indicado por el inodo.
             for (int j = 0; j < MAX_NUMS_BLOQUE_INODO; j++) {
@@ -213,12 +236,12 @@ void Directorio(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos) {
 // ---RENAME--- / Método que cambiará el nombre del fichero en la entrada correspondiente.
 int Renombrar(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, char *nombreantiguo, char *nombrenuevo) {
     
-    int inodo_a_buscar = BuscaFich(directorio, inodos, nombreantiguo);
+    int inodo_a_buscar = BuscaFich2(directorio, inodos, nombreantiguo);
     if (inodo_a_buscar == -1) {
         printf("Error: el fichero %s no existe.\n", nombreantiguo);
         return -1;
     }
-    if (BuscaFich(directorio, inodos, nombrenuevo) != -1) {
+    if (BuscaFich2(directorio, inodos, nombrenuevo) != -1) {
         printf("Error: el fichero %s ya existe.\n", nombrenuevo);
         return -1;
     }
@@ -255,7 +278,7 @@ int Imprimir(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, EXT_DATOS *mem
 int Borrar(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, EXT_BYTE_MAPS *ext_bytemaps, EXT_SIMPLE_SUPERBLOCK *ext_superblock, char *nombre, FILE *fich) {
     
     // Llamamos a la función de "BuscaFich" para encontrar el índice del archivo y lo guardamos en "indice".
-    int inodo = BuscaFich(directorio, inodos, nombre);
+    int inodo = BuscaFich2(directorio, inodos, nombre);
    
     // Si el indice guardado anteriormente es "-1", imprimimos un mensaje de "ERROR" indicando que el archivo no existe.
     if (inodo == -1) {
