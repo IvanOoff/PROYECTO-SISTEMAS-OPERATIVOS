@@ -1,2 +1,2 @@
-Iván García-Arcicollar
+- Iván García-Arcicollar
 - Ignacio Lamelas Salan
