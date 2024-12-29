@@ -121,7 +121,6 @@ int main() {
 
         // ---SALIR---
         else if (strcmp(orden, "salir") == 0) {
-
             Grabarinodosydirectorio(directorio, &ext_blq_inodos, fent);
             GrabarByteMaps(&ext_bytemaps, fent);
             GrabarSuperBloque(&ext_superblock, fent);
@@ -186,7 +185,7 @@ int ComprobarComando(char *strcomando, char *orden, char *argumento1, char *argu
         }
 }
 
-// ---BUSCARFICH--- / Método que se encargará de buscar el fichero
+// ---BUSCARFICH--- / Método que se encargará de buscar el fichero.
 int BuscaFich(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, char *nombre) {
     
     // Bucle for para recorrer todas las entradas del directorio.
@@ -227,7 +226,8 @@ void Directorio(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos) {
             printf("%s tamanio:%d inodo:%d bloques:", directorio[i].dir_nfich, inodos->blq_inodos[directorio[i].dir_inodo].size_fichero, directorio[i].dir_inodo);
             
 
-            // PARA LOS BLOQUES.
+            // ----PARA LOS BLOQUES-----
+
 
             // Bucle para recorrer los bloques asignados al archivo indicado por el inodo.
             for (int j = 0; j < MAX_NUMS_BLOQUE_INODO; j++) {
@@ -245,17 +245,22 @@ void Directorio(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos) {
 // ---RENAME--- / Método que cambiará el nombre del fichero en la entrada correspondiente.
 int Renombrar(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, char *nombreantiguo, char *nombrenuevo) {
     
-    // 
+    // Llamamos a la función de "BuscaFich2" para encontrar el índice del archivo con el nombre antiguo en el directorio, y lo guardamos en "inodo_a_buscar".
     int inodo_a_buscar = BuscaFich2(directorio, inodos, nombreantiguo);
+    
+    // Comprobamos si el indice es "-1" para verificar que el archivo con el nombre antiguo no exista.
     if (inodo_a_buscar == -1) {
         printf("Error: el fichero %s no existe.\n", nombreantiguo);
         return -1;
     }
+
+    // Comprobamos con "BuscarFich" si ya existe un archivo con el nombre nuevo del fichero.
     if (BuscaFich2(directorio, inodos, nombrenuevo) != -1) {
         printf("Error: el fichero %s ya existe.\n", nombrenuevo);
         return -1;
     }
 
+    // Copiamos el nuevo nombre en la entrada del directorio correspondiente al inodo encontrado.
     strcpy(directorio[inodo_a_buscar].dir_nfich, nombrenuevo);
     return 0;
 }
@@ -284,11 +289,10 @@ int Imprimir(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, EXT_DATOS *mem
     return 0;
 }
 
-
 // ---REMOVE--- / Método que borrará el fichero que le indiquemos.
 int Borrar(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, EXT_BYTE_MAPS *ext_bytemaps, EXT_SIMPLE_SUPERBLOCK *ext_superblock, char *nombre, FILE *fich) {
     
-    // Llamamos a la función de "BuscaFich" para encontrar el índice del archivo y lo guardamos en "indice".
+    // Llamamos a la función de "BuscaFich2" para encontrar el índice del archivo y lo guardamos en "indice".
     int inodo = BuscaFich2(directorio, inodos, nombre);
    
     // Si el indice guardado anteriormente es "-1", imprimimos un mensaje de "ERROR" indicando que el archivo no existe.
@@ -297,17 +301,30 @@ int Borrar(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, EXT_BYTE_MAPS *e
         return -1;
     }
 
-    // Bucle para 
+    // Bucle para recorrer los bloques asignados al inodo encontrado.
     for (int i = 0; i < MAX_NUMS_BLOQUE_INODO; i++) {
+
+        // Comprobamos si un bloque no es "NULL_BLOQUE", lo cual significará qie el bloque está ya asignado.
         if (inodos->blq_inodos[inodo].i_nbloque[i] != NULL_BLOQUE) {
+
+            // Marcamos ese bloque en el mapa de bits de bloques como libre "0".
             ext_bytemaps->bmap_bloques[inodos->blq_inodos[inodo].i_nbloque[i]] = 0;
+
+            // Establecemos el bloque del inodo a "NULL_BLOQUE".
             inodos->blq_inodos[inodo].i_nbloque[i] = NULL_BLOQUE;
         }
     }
 
+    // Establecemos el tamaño del archivo del inodo a 0.
     inodos->blq_inodos[inodo].size_fichero = 0;
+
+    // Marcamos el inodo en el mapa de bits de inodos como libre "0".
     ext_bytemaps->bmap_inodos[inodo] = 0;
+
+    // Establecemos el nombre del archivo en la entrada del directorio correspondiente al inodo.
     strcpy(directorio[inodo].dir_nfich, "");
+
+    // Establecemos el inodo de la entrada del directorio a "NULL_INODO".
     directorio[inodo].dir_inodo = NULL_INODO;
 
     // Incrementamos el contador de bloques libres.
